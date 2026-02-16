@@ -18,7 +18,7 @@ variable "create_kv" {
 variable "kv_mount_path" {
   description = "Path to the existing KV mount (required when create_kv is true)"
   type        = string
-  default     = ""
+  default     = "kv"
 }
 
 variable "kv_path" {
