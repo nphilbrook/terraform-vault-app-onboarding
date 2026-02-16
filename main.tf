@@ -8,7 +8,10 @@ resource "vault_aws_auth_backend_role" "this" {
   backend = data.vault_auth_backend.aws.path
   role    = var.name
 
-  auth_type = "iam"
+  auth_type            = "iam"
+  inferred_entity_type = "ec2_instance"
+  # TODO: look up with data source
+  inferred_aws_region = "us-west-2"
 
   bound_ami_ids                   = var.bound_ami_ids
   bound_account_ids               = var.bound_account_ids
