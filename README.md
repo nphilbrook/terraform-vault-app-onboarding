@@ -17,10 +17,10 @@ A Terraform module for provisioning AWS auth roles in HashiCorp Vault with optio
 module "app_auth_role" {
   source = "github.com/nphilbrook/terraform-vault-app-onboarding"
 
-  name               = "my-app-role"
-  backend            = "aws"
-  bound_account_id   = ["123456789012"]
-  bound_iam_role_arn = ["arn:aws:iam::123456789012:role/my-app-role"]
+  name                 = "my-app-role"
+  backend              = "aws"
+  bound_account_ids    = ["123456789012"]
+  bound_iam_role_arns  = ["arn:aws:iam::123456789012:role/my-app-role"]
 }
 ```
 
@@ -30,10 +30,10 @@ module "app_auth_role" {
 module "app_auth_role_with_kv" {
   source = "github.com/nphilbrook/terraform-vault-app-onboarding"
 
-  name               = "my-app-role"
-  backend            = "aws"
-  bound_account_id   = ["123456789012"]
-  bound_iam_role_arn = ["arn:aws:iam::123456789012:role/my-app-role"]
+  name                 = "my-app-role"
+  backend              = "aws"
+  bound_account_ids    = ["123456789012"]
+  bound_iam_role_arns  = ["arn:aws:iam::123456789012:role/my-app-role"]
   
   create_kv       = true
   kv_mount_path   = "secret"
@@ -75,13 +75,13 @@ module "app_auth_role_with_kv" {
 | create_kv | Whether to create a KV policy for this role | `bool` | `false` | no |
 | kv_mount_path | Path to the existing KV mount (required when create_kv is true) | `string` | `""` | no |
 | kv_path | Path within the KV mount to grant access to (required when create_kv is true) | `string` | `""` | no |
-| bound_ami_id | List of AMI IDs that are allowed to authenticate | `list(string)` | `[]` | no |
-| bound_account_id | List of AWS account IDs that are allowed to authenticate | `list(string)` | `[]` | no |
-| bound_region | List of AWS regions that are allowed to authenticate | `list(string)` | `[]` | no |
-| bound_vpc_id | List of VPC IDs that are allowed to authenticate | `list(string)` | `[]` | no |
-| bound_subnet_id | List of subnet IDs that are allowed to authenticate | `list(string)` | `[]` | no |
-| bound_iam_role_arn | List of IAM role ARNs that are allowed to authenticate | `list(string)` | `[]` | no |
-| bound_iam_instance_profile_arn | List of IAM instance profile ARNs that are allowed to authenticate | `list(string)` | `[]` | no |
+| bound_ami_ids | List of AMI IDs that are allowed to authenticate | `list(string)` | `[]` | no |
+| bound_account_ids | List of AWS account IDs that are allowed to authenticate | `list(string)` | `[]` | no |
+| bound_regions | List of AWS regions that are allowed to authenticate | `list(string)` | `[]` | no |
+| bound_vpc_ids | List of VPC IDs that are allowed to authenticate | `list(string)` | `[]` | no |
+| bound_subnet_ids | List of subnet IDs that are allowed to authenticate | `list(string)` | `[]` | no |
+| bound_iam_role_arns | List of IAM role ARNs that are allowed to authenticate | `list(string)` | `[]` | no |
+| bound_iam_instance_profile_arns | List of IAM instance profile ARNs that are allowed to authenticate | `list(string)` | `[]` | no |
 | token_ttl | The TTL period of tokens issued using this role in seconds | `number` | `null` | no |
 | token_max_ttl | The maximum lifetime of tokens issued using this role in seconds | `number` | `null` | no |
 | token_policies | List of policies to attach to tokens issued using this role | `list(string)` | `[]` | no |

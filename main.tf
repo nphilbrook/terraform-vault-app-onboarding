@@ -10,13 +10,13 @@ resource "vault_aws_auth_backend_role" "this" {
 
   auth_type = "iam"
 
-  bound_ami_ids                   = var.bound_ami_id
-  bound_account_ids               = var.bound_account_id
-  bound_regions                   = var.bound_region
-  bound_vpc_ids                   = var.bound_vpc_id
-  bound_subnet_ids                = var.bound_subnet_id
-  bound_iam_role_arns             = var.bound_iam_role_arn
-  bound_iam_instance_profile_arns = var.bound_iam_instance_profile_arn
+  bound_ami_ids                   = var.bound_ami_ids
+  bound_account_ids               = var.bound_account_ids
+  bound_regions                   = var.bound_regions
+  bound_vpc_ids                   = var.bound_vpc_ids
+  bound_subnet_ids                = var.bound_subnet_ids
+  bound_iam_role_arns             = var.bound_iam_role_arns
+  bound_iam_instance_profile_arns = var.bound_iam_instance_profile_arns
 
   token_ttl     = var.token_ttl
   token_max_ttl = var.token_max_ttl
@@ -44,4 +44,16 @@ path "${var.kv_mount_path}/metadata/${var.kv_path}/*" {
   capabilities = ["read", "list", "delete"]
 }
 EOT
+
+  lifecycle {
+    precondition {
+      condition     = var.kv_mount_path != ""
+      error_message = "kv_mount_path must be specified when create_kv is true."
+    }
+
+    precondition {
+      condition     = var.kv_path != ""
+      error_message = "kv_path must be specified when create_kv is true."
+    }
+  }
 }

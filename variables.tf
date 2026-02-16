@@ -27,43 +27,43 @@ variable "kv_path" {
   default     = ""
 }
 
-variable "bound_ami_id" {
+variable "bound_ami_ids" {
   description = "List of AMI IDs that are allowed to authenticate"
   type        = list(string)
   default     = []
 }
 
-variable "bound_account_id" {
+variable "bound_account_ids" {
   description = "List of AWS account IDs that are allowed to authenticate"
   type        = list(string)
   default     = []
 }
 
-variable "bound_region" {
+variable "bound_regions" {
   description = "List of AWS regions that are allowed to authenticate"
   type        = list(string)
   default     = []
 }
 
-variable "bound_vpc_id" {
+variable "bound_vpc_ids" {
   description = "List of VPC IDs that are allowed to authenticate"
   type        = list(string)
   default     = []
 }
 
-variable "bound_subnet_id" {
+variable "bound_subnet_ids" {
   description = "List of subnet IDs that are allowed to authenticate"
   type        = list(string)
   default     = []
 }
 
-variable "bound_iam_role_arn" {
+variable "bound_iam_role_arns" {
   description = "List of IAM role ARNs that are allowed to authenticate"
   type        = list(string)
   default     = []
 }
 
-variable "bound_iam_instance_profile_arn" {
+variable "bound_iam_instance_profile_arns" {
   description = "List of IAM instance profile ARNs that are allowed to authenticate"
   type        = list(string)
   default     = []
