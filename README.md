@@ -94,7 +94,3 @@ module "app_auth_role_with_kv" {
 | backend_path | Path to the AWS auth backend |
 | policy_name | Name of the KV policy (if created) |
 | role_id | The ID of the AWS auth role |
-
-## License
-
-Apache 2.0 License
