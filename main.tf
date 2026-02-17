@@ -6,7 +6,7 @@ data "vault_auth_backend" "aws" {
 # Create the AWS auth role
 resource "vault_aws_auth_backend_role" "this" {
   backend = data.vault_auth_backend.aws.path
-  role    = var.name
+  role    = "applz-${var.name}"
 
   auth_type            = "iam"
   inferred_entity_type = "ec2_instance"
@@ -35,7 +35,7 @@ resource "vault_aws_auth_backend_role" "this" {
 resource "vault_policy" "kv" {
   count = var.create_kv ? 1 : 0
 
-  name = "${var.name}-kv-policy"
+  name = "applz-${var.name}-kv-policy"
 
   policy = <<EOT
 # Allow access to the KV path
