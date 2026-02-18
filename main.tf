@@ -11,6 +11,7 @@ resource "vault_aws_auth_backend_role" "this" {
   auth_type            = "iam"
   inferred_entity_type = "ec2_instance"
   # TODO: look up with data source
+  # TODO: What happens with replication and this value?!
   inferred_aws_region = "us-west-2"
 
   bound_ami_ids                   = var.bound_ami_ids
