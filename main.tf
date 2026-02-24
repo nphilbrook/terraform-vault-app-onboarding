@@ -1,12 +1,20 @@
+locals {
+  create_role = var.aws_auth != null
+  create_kv   = local.create_role && var.create_kv
+}
+
 # Lookup the AWS auth backend
 data "vault_auth_backend" "aws" {
-  path = var.backend
+  count = local.create_role ? 1 : 0
+  path  = var.aws_auth.backend
 }
 
 # Create the AWS auth role
 resource "vault_aws_auth_backend_role" "this" {
-  backend = data.vault_auth_backend.aws.path
-  role    = "applz-${var.name}"
+  count = local.create_role ? 1 : 0
+
+  backend = data.vault_auth_backend.aws[0].path
+  role    = "applz-${var.aws_auth.name}"
 
   auth_type            = "iam"
   inferred_entity_type = "ec2_instance"
@@ -14,29 +22,29 @@ resource "vault_aws_auth_backend_role" "this" {
   # TODO: What happens with replication and this value?!
   inferred_aws_region = "us-west-2"
 
-  bound_ami_ids                   = var.bound_ami_ids
-  bound_account_ids               = var.bound_account_ids
-  bound_regions                   = var.bound_regions
-  bound_vpc_ids                   = var.bound_vpc_ids
-  bound_subnet_ids                = var.bound_subnet_ids
-  bound_iam_role_arns             = var.bound_iam_role_arns
-  bound_iam_instance_profile_arns = var.bound_iam_instance_profile_arns
+  bound_ami_ids                   = var.aws_auth.bound_ami_ids
+  bound_account_ids               = var.aws_auth.bound_account_ids
+  bound_regions                   = var.aws_auth.bound_regions
+  bound_vpc_ids                   = var.aws_auth.bound_vpc_ids
+  bound_subnet_ids                = var.aws_auth.bound_subnet_ids
+  bound_iam_role_arns             = var.aws_auth.bound_iam_role_arns
+  bound_iam_instance_profile_arns = var.aws_auth.bound_iam_instance_profile_arns
 
-  token_ttl     = var.token_ttl
-  token_max_ttl = var.token_max_ttl
+  token_ttl     = var.aws_auth.token_ttl
+  token_max_ttl = var.aws_auth.token_max_ttl
 
   # Combine both the user-provided policies and the KV policy (if created)
   token_policies = concat(
-    var.token_policies,
-    var.create_kv ? [vault_policy.kv[0].name] : []
+    var.aws_auth.token_policies,
+    local.create_kv ? [vault_policy.kv[0].name] : []
   )
 }
 
 # Create a policy granting access to the KV path if create_kv is true
 resource "vault_policy" "kv" {
-  count = var.create_kv ? 1 : 0
+  count = local.create_kv ? 1 : 0
 
-  name = "applz-${var.name}-kv-policy"
+  name = "applz-${var.aws_auth.name}-kv-policy"
 
   policy = <<EOT
 # Allow access to the KV path
