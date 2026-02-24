@@ -1,6 +1,6 @@
 locals {
   create_role = var.aws_auth != null
-  create_kv   = local.create_role && var.create_kv
+  create_kv   = var.create_kv
 }
 
 moved {
@@ -19,7 +19,7 @@ resource "vault_aws_auth_backend_role" "this" {
   count = local.create_role ? 1 : 0
 
   backend = data.vault_auth_backend.aws[0].path
-  role    = "applz-${var.aws_auth.name}"
+  role    = "applz-${var.app_name}"
 
   auth_type            = "iam"
   inferred_entity_type = "ec2_instance"
@@ -41,7 +41,7 @@ resource "vault_aws_auth_backend_role" "this" {
   # Combine both the user-provided policies and the KV policy (if created)
   token_policies = concat(
     var.aws_auth.token_policies,
-    local.create_kv ? [vault_policy.kv[0].name] : []
+    var.create_kv ? [vault_policy.kv[0].name] : []
   )
 }
 
@@ -49,15 +49,15 @@ resource "vault_aws_auth_backend_role" "this" {
 resource "vault_policy" "kv" {
   count = local.create_kv ? 1 : 0
 
-  name = "applz-${var.aws_auth.name}-kv-policy"
+  name = "applz-kv-${var.app_name}"
 
   policy = <<EOT
 # Allow access to the KV path
-path "${var.kv_mount_path}/data/${var.kv_path}/*" {
+path "${var.kv_mount_path}/data/${var.app_name}/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
 }
 
-path "${var.kv_mount_path}/metadata/${var.kv_path}/*" {
+path "${var.kv_mount_path}/metadata/${var.app_name}/*" {
   capabilities = ["read", "list", "delete"]
 }
 EOT
@@ -66,11 +66,6 @@ EOT
     precondition {
       condition     = var.kv_mount_path != ""
       error_message = "kv_mount_path must be specified when create_kv is true."
-    }
-
-    precondition {
-      condition     = var.kv_path != ""
-      error_message = "kv_path must be specified when create_kv is true."
     }
   }
 }

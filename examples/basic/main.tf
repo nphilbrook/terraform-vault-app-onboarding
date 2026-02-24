@@ -1,8 +1,9 @@
 module "app_auth_role" {
   source = "../.."
 
+  app_name = "my-app-role"
+
   aws_auth = {
-    name                = "my-app-role"
     backend             = "aws"
     bound_account_ids   = ["123456789012"]
     bound_iam_role_arns = ["arn:aws:iam::123456789012:role/my-app-role"]

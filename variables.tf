@@ -1,7 +1,11 @@
+variable "app_name" {
+  description = "Application name, used for the AWS auth role name and KV path"
+  type        = string
+}
+
 variable "aws_auth" {
   description = "AWS auth backend role configuration. Set to null to skip creating the role."
   type = object({
-    name                            = string
     backend                         = optional(string, "aws")
     bound_ami_ids                   = optional(list(string), [])
     bound_account_ids               = optional(list(string), [])
@@ -18,7 +22,7 @@ variable "aws_auth" {
 }
 
 variable "create_kv" {
-  description = "Whether to create a KV policy for this role (requires aws_auth to be set)"
+  description = "Whether to create a KV policy"
   type        = bool
   default     = false
 }
@@ -27,10 +31,4 @@ variable "kv_mount_path" {
   description = "Path to the existing KV mount (required when create_kv is true)"
   type        = string
   default     = "kv"
-}
-
-variable "kv_path" {
-  description = "Path within the KV mount to grant access to (required when create_kv is true)"
-  type        = string
-  default     = ""
 }

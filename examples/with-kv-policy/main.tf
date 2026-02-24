@@ -1,8 +1,9 @@
 module "app_auth_role_with_kv" {
   source = "../.."
 
+  app_name = "my-app"
+
   aws_auth = {
-    name                = "my-app-role"
     backend             = "aws"
     bound_account_ids   = ["123456789012"]
     bound_iam_role_arns = ["arn:aws:iam::123456789012:role/my-app-role"]
@@ -14,7 +15,6 @@ module "app_auth_role_with_kv" {
   # Enable KV policy creation
   create_kv     = true
   kv_mount_path = "secret"
-  kv_path       = "apps/my-app"
 }
 
 output "role_name" {
