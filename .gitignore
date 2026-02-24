@@ -39,3 +39,5 @@ terraform.rc
 # Example directories - exclude their .terraform and lock files
 examples/**/.terraform/
 examples/**/.terraform.lock.hcl
+
+TOKEN
