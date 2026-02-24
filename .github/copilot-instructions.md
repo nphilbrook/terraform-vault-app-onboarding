@@ -2,9 +2,27 @@
 
 This document describes how an AI agent should test changes to this Terraform module using the HCP Terraform API.
 
+## General Rules
+
+- Commit and push code changes to branches without asking for confirmation. Do not wait for approval before committing or pushing.
+- Every module change must be tested against **all** example workspaces before merging.
+
 ## Overview
 
-This repository is a Terraform module that creates Vault AWS auth backend roles with optional KV policies. Changes must be tested end-to-end on HCP Terraform before merging.
+This repository is a Terraform module that creates Vault AWS auth backend roles with optional KV policies. Each subdirectory under `examples/` is a self-contained Terraform root module that exercises a specific use case. Each example has a dedicated HCP Terraform workspace that uses `working_directory` to scope runs to that example.
+
+## Example Workspaces
+
+Each example directory maps to a workspace. The workspaces are managed as `tfe_workspace` resources in the `hcp-tf-control` repository (`aws_hvd_vault_onboarding.tf`).
+
+| Example directory | Workspace name | Workspace ID |
+|---|---|---|
+| `examples/basic` | `vault-onboarding-basic` | `ws-pidXJL85KawYBFAJ` |
+| `examples/with-kv-policy` | `vault-onboarding-with-kv-policy` | `ws-aNjJT2MRGWZSSw5y` |
+
+> **After the hcp-tf-control workspaces are created**, update the workspace IDs in this table.
+
+Examples are self-contained — all variable values are hardcoded in each example's `main.tf`. No workspace variables need to be set via the API.
 
 ## Prerequisites
 
@@ -12,7 +30,6 @@ This repository is a Terraform module that creates Vault AWS auth backend roles 
 |---|---|
 | HCP Terraform API base | `https://app.terraform.io/api/v2` |
 | Organization | `philbrook` |
-| Test workspace ID | `ws-AcrGvhSgvqEkdMNR` |
 | GitHub App Installation ID | `ghain-ieieBWKoaGhWE3rE` |
 | Repository identifier | `nphilbrook/terraform-vault-app-onboarding` |
 | API token file | `TOKEN` (repo root) |
@@ -36,12 +53,12 @@ git add -A && git commit -m "<description>"
 git push -u origin <branch-name>
 ```
 
-### 2. Point the workspace VCS integration at the branch
+### 2. Point each workspace at the branch
 
-Update the workspace so it tracks your branch instead of the default branch:
+For **every** workspace listed in the Example Workspaces table, update the VCS integration to track your branch:
 
 ```
-PATCH /workspaces/ws-AcrGvhSgvqEkdMNR
+PATCH /workspaces/<workspace-id>
 ```
 
 ```json
@@ -59,67 +76,13 @@ PATCH /workspaces/ws-AcrGvhSgvqEkdMNR
 }
 ```
 
-### 3. Set workspace variables
+### 3. Trigger a plan on each workspace
 
-List existing variables:
-
-```
-GET /workspaces/ws-AcrGvhSgvqEkdMNR/vars
-```
-
-Create or update variables as needed. At minimum the module requires:
-
-| Variable | Category | HCL | Example value | Required |
-|---|---|---|---|---|
-| `name` | `terraform` | `false` | `my-test-role` | **yes** |
-| `bound_iam_instance_profile_arns` | `terraform` | `true` | `["arn:aws:iam::instance-profile/example"]` | at least one `bound_*` |
-| `create_kv` | `terraform` | `true` | `true` | no |
-| `kv_path` | `terraform` | `false` | `my-test-role` | when `create_kv = true` |
-| `backend` | `terraform` | `false` | `aws` | no (default `aws`) |
-| `token_policies` | `terraform` | `true` | `["default"]` | no |
-
-To create a variable:
+For each workspace, check for existing runs and trigger a plan if none is queued:
 
 ```
-POST /workspaces/ws-AcrGvhSgvqEkdMNR/vars
+GET /workspaces/<workspace-id>/runs
 ```
-
-```json
-{
-  "data": {
-    "type": "vars",
-    "attributes": {
-      "key": "<key>",
-      "value": "<value>",
-      "category": "terraform",
-      "hcl": false,
-      "sensitive": false,
-      "description": ""
-    },
-    "relationships": {
-      "workspace": {
-        "data": { "id": "ws-AcrGvhSgvqEkdMNR", "type": "workspaces" }
-      }
-    }
-  }
-}
-```
-
-To update an existing variable (use the variable ID from the list response):
-
-```
-PATCH /workspaces/ws-AcrGvhSgvqEkdMNR/vars/<var-id>
-```
-
-### 4. Trigger a plan
-
-After pushing to the branch the workspace may auto-trigger a run. Check for existing runs first:
-
-```
-GET /workspaces/ws-AcrGvhSgvqEkdMNR/runs
-```
-
-If no run is queued, trigger one manually:
 
 ```
 POST /runs
@@ -132,14 +95,14 @@ POST /runs
     "attributes": { "message": "Triggered via agent" },
     "relationships": {
       "workspace": {
-        "data": { "id": "ws-AcrGvhSgvqEkdMNR", "type": "workspaces" }
+        "data": { "id": "<workspace-id>", "type": "workspaces" }
       }
     }
   }
 }
 ```
 
-### 5. Poll the run and apply
+### 4. Poll and apply each run
 
 Poll the run status until it reaches a terminal or confirmable state:
 
@@ -160,14 +123,14 @@ POST /runs/<run-id>/actions/apply
 { "comment": "Applied via agent" }
 ```
 
-Review the plan output before applying. If the plan shows unexpected changes, investigate before confirming.
+Review the plan output before applying. If the plan shows unexpected changes, investigate before confirming. **All** example workspaces must apply successfully before the change is considered tested.
 
-### 6. Clean up — reset the workspace branch
+### 5. Clean up — reset workspace branches
 
-After testing, reset the workspace VCS integration back to the default branch:
+After testing, reset **every** workspace's VCS integration back to the default branch:
 
 ```
-PATCH /workspaces/ws-AcrGvhSgvqEkdMNR
+PATCH /workspaces/<workspace-id>
 ```
 
 ```json
@@ -186,30 +149,14 @@ PATCH /workspaces/ws-AcrGvhSgvqEkdMNR
 }
 ```
 
-If you created test infrastructure, run a destroy before resetting the branch:
+## Adding a New Use Case
 
-```
-POST /runs
-```
+When adding a new use case to the module:
 
-```json
-{
-  "data": {
-    "type": "runs",
-    "attributes": {
-      "is-destroy": true,
-      "message": "Destroy via agent"
-    },
-    "relationships": {
-      "workspace": {
-        "data": { "id": "ws-AcrGvhSgvqEkdMNR", "type": "workspaces" }
-      }
-    }
-  }
-}
-```
-
-Poll and apply the destroy run before resetting the branch.
+1. Create a new directory under `examples/` (e.g., `examples/my-new-case`) with a self-contained `main.tf` and `versions.tf`.
+2. Add a corresponding `tfe_workspace` resource in the `hcp-tf-control` repository's `aws_hvd_vault_onboarding.tf` file, with `working_directory` set to the new example path.
+3. Apply the `hcp-tf-control` workspace to create the new workspace.
+4. Update the **Example Workspaces** table in this file with the new workspace name and ID.
 
 ## Reference
 
