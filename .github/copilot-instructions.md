@@ -1,46 +1,40 @@
-# Agent Instructions — Testing Module Changes on HCP Terraform
+# Agent Instructions — Testing Module Changes with HCP Terraform
 
-This document describes how an AI agent should test changes to this Terraform module using the HCP Terraform API.
+This document describes how an AI agent should test changes to this Terraform module.
 
 ## General Rules
 
 - Commit and push code changes to branches without asking for confirmation. Do not wait for approval before committing or pushing.
-- Every module change must be tested against **all** example workspaces before merging.
+- Every module change must be tested against **all** examples before merging.
 
 ## Overview
 
-This repository is a Terraform module that creates Vault AWS auth backend roles with optional KV policies. Each subdirectory under `examples/` is a self-contained Terraform root module that exercises a specific use case. Each example has a dedicated HCP Terraform workspace that uses `working_directory` to scope runs to that example.
+This repository is a Terraform module that creates Vault AWS auth backend roles with optional KV policies. Each subdirectory under `examples/` is a self-contained Terraform root module that exercises a specific use case. Each example has a `cloud` backend block that stores state in the **AWS Vault LZs** project in HCP Terraform.
 
-## Example Workspaces
+## Examples
 
-Each example directory maps to a workspace. The workspaces are managed as `tfe_workspace` resources in the `hcp-tf-control` repository (`aws_hvd_vault_onboarding.tf`).
+| Example directory | Workspace name |
+|---|---|
+| `examples/basic` | `vault-onboarding-basic` |
+| `examples/with-kv-policy` | `vault-onboarding-with-kv-policy` |
 
-| Example directory | Workspace name | Workspace ID |
-|---|---|---|
-| `examples/basic` | `vault-onboarding-basic` | `ws-pidXJL85KawYBFAJ` |
-| `examples/with-kv-policy` | `vault-onboarding-with-kv-policy` | `ws-aNjJT2MRGWZSSw5y` |
-
-> **After the hcp-tf-control workspaces are created**, update the workspace IDs in this table.
-
-Examples are self-contained — all variable values are hardcoded in each example's `main.tf`. No workspace variables need to be set via the API.
+Examples are self-contained — all variable values are hardcoded in each example's `main.tf`. No workspace variables need to be set.
 
 ## Prerequisites
 
 | Item | Value |
 |---|---|
-| HCP Terraform API base | `https://app.terraform.io/api/v2` |
-| Organization | `philbrook` |
-| GitHub App Installation ID | `ghain-ieieBWKoaGhWE3rE` |
-| Repository identifier | `nphilbrook/terraform-vault-app-onboarding` |
+| HCP Terraform organization | `philbrook` |
+| HCP Terraform project | `AWS Vault LZs` |
 | API token file | `TOKEN` (repo root) |
 
-Load the API token:
+Set the HCP Terraform API token as an environment variable so that Terraform can authenticate:
 
 ```sh
-export TFE_TOKEN=$(cat TOKEN)
+export TF_TOKEN_app_terraform_io=$(cat TOKEN)
 ```
 
-All API requests require the header `Authorization: Bearer $TFE_TOKEN` and `Content-Type: application/vnd.api+json`.
+**IMPORTANT:** You **must** set `TF_TOKEN_app_terraform_io` to the contents of the `TOKEN` file before running any Terraform commands. This is required for `terraform init` to authenticate with the HCP Terraform backend.
 
 ## Testing Workflow
 
@@ -53,117 +47,54 @@ git add -A && git commit -m "<description>"
 git push -u origin <branch-name>
 ```
 
-### 2. Point each workspace at the branch
+### 2. Test each example
 
-For **every** workspace listed in the Example Workspaces table, update the VCS integration to track your branch:
+For **every** example directory, run the full Terraform workflow:
 
-```
-PATCH /workspaces/<workspace-id>
-```
+```sh
+export TF_TOKEN_app_terraform_io=$(cat TOKEN)
 
-```json
-{
-  "data": {
-    "type": "workspaces",
-    "attributes": {
-      "vcs-repo": {
-        "identifier": "nphilbrook/terraform-vault-app-onboarding",
-        "github-app-installation-id": "ghain-ieieBWKoaGhWE3rE",
-        "branch": "<branch-name>"
-      }
-    }
-  }
-}
+cd examples/<example-name>
+terraform init
+terraform plan
 ```
 
-### 3. Trigger a plan on each workspace
+Review the plan output. If the plan shows unexpected changes, investigate before proceeding.
 
-For each workspace, check for existing runs and trigger a plan if none is queued:
-
-```
-GET /workspaces/<workspace-id>/runs
+```sh
+terraform apply -auto-approve
 ```
 
-```
-POST /runs
-```
+**All** examples must apply successfully before the change is considered tested.
 
-```json
-{
-  "data": {
-    "type": "runs",
-    "attributes": { "message": "Triggered via agent" },
-    "relationships": {
-      "workspace": {
-        "data": { "id": "<workspace-id>", "type": "workspaces" }
-      }
-    }
-  }
-}
-```
+### 3. Clean up (if needed)
 
-### 4. Poll and apply each run
+If you need to tear down resources created during testing:
 
-Poll the run status until it reaches a terminal or confirmable state:
-
-```
-GET /runs/<run-id>
-```
-
-- **Terminal states**: `planned_and_finished`, `applied`, `errored`, `discarded`, `canceled`, `force_canceled`
-- **Confirmable states** (apply the run): `planned`, `cost_estimated`, `policy_checked`, `post_plan_completed`
-
-To apply:
-
-```
-POST /runs/<run-id>/actions/apply
-```
-
-```json
-{ "comment": "Applied via agent" }
-```
-
-Review the plan output before applying. If the plan shows unexpected changes, investigate before confirming. **All** example workspaces must apply successfully before the change is considered tested.
-
-### 5. Clean up — reset workspace branches
-
-After testing, reset **every** workspace's VCS integration back to the default branch:
-
-```
-PATCH /workspaces/<workspace-id>
-```
-
-```json
-{
-  "data": {
-    "type": "workspaces",
-    "attributes": {
-      "vcs-repo": {
-        "identifier": "nphilbrook/terraform-vault-app-onboarding",
-        "github-app-installation-id": "ghain-ieieBWKoaGhWE3rE",
-        "branch": "",
-        "default-branch": true
-      }
-    }
-  }
-}
+```sh
+cd examples/<example-name>
+terraform destroy -auto-approve
 ```
 
 ## Adding a New Use Case
 
 When adding a new use case to the module:
 
-1. Create a new directory under `examples/` (e.g., `examples/my-new-case`) with a self-contained `main.tf` and `versions.tf`.
-2. Add a corresponding `tfe_workspace` resource in the `hcp-tf-control` repository's `aws_hvd_vault_onboarding.tf` file, with `working_directory` set to the new example path.
-3. Apply the `hcp-tf-control` workspace to create the new workspace.
-4. Update the **Example Workspaces** table in this file with the new workspace name and ID.
-
-## Reference
-
-The `scripts/` directory contains Python scripts that demonstrate the full API patterns:
-
-- **create_workspace.py** — creates a VCS-backed workspace, sets variables, triggers a run, and polls to completion.
-- **update_workspace.py** — updates variables on an existing workspace and triggers a run.
-- **delete_workspace.py** — triggers a destroy run, polls to completion, then deletes the workspace.
-
-These scripts read the token from `TFE_TOKEN` environment variable and can be used as executable references for API call structure, error handling, and polling logic.
+1. Create a new directory under `examples/` (e.g., `examples/my-new-case`) with these files (per the [Terraform style guide](https://developer.hashicorp.com/terraform/language/style#file-names)):
+   - `main.tf` — module call and outputs
+   - `terraform.tf` — `required_version` and `required_providers`
+   - `backend.tf` — `cloud` backend block (see below)
+   - `providers.tf` — provider configuration
+2. Include a `cloud` backend block in `backend.tf` pointing to the **AWS Vault LZs** project with a unique workspace name:
+   ```hcl
+   terraform {
+     cloud {
+       organization = "philbrook"
+       workspaces {
+         name    = "vault-onboarding-<example-name>"
+         project = "AWS Vault LZs"
+       }
+     }
+   }
+   ```
+3. Update the **Examples** table in this file with the new example directory and workspace name.

@@ -8,9 +8,3 @@ terraform {
     }
   }
 }
-
-provider "vault" {
-  # Configure the Vault provider
-  # address = "http://localhost:8200"
-  # token   = "your-vault-token"
-}

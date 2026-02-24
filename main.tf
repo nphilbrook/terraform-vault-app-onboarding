@@ -3,11 +3,6 @@ locals {
   create_kv   = var.create_kv
 }
 
-moved {
-  from = vault_aws_auth_backend_role.this
-  to   = vault_aws_auth_backend_role.this[0]
-}
-
 # Lookup the AWS auth backend
 data "vault_auth_backend" "aws" {
   count = local.create_role ? 1 : 0
