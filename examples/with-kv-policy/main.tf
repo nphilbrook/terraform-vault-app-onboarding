@@ -13,8 +13,8 @@ module "app_auth_role_with_kv" {
   }
 
   # Enable KV policy creation
-  create_kv     = true
-  kv_mount_path = "secret"
+  create_kv_policy = true
+  kv_mount_path    = "secret"
 }
 
 output "role_name" {

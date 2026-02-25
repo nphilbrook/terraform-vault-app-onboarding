@@ -11,8 +11,8 @@ module "app_github_auth" {
   }
 
   # Enable KV policy creation
-  create_kv     = true
-  kv_mount_path = "secret"
+  create_kv_policy = true
+  kv_mount_path    = "secret"
 }
 
 output "github_role_name" {
