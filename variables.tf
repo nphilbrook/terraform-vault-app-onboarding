@@ -27,6 +27,21 @@ variable "create_kv" {
   default     = false
 }
 
+variable "github_auth" {
+  description = "GitHub Actions JWT auth backend role configuration. Set to null to skip creating the role."
+  type = object({
+    backend              = optional(string, "jwt")
+    github_organization  = string
+    github_repositories  = list(string)
+    vault_namespace_path = optional(string)
+    workflow             = optional(string)
+    bound_audiences      = optional(list(string))
+    token_ttl            = optional(number, 300)
+    token_policies       = optional(list(string), [])
+  })
+  default = null
+}
+
 variable "kv_mount_path" {
   description = "Path to the existing KV mount (required when create_kv is true)"
   type        = string

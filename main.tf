@@ -1,6 +1,7 @@
 locals {
-  create_role = var.aws_auth != null
-  create_kv   = var.create_kv
+  create_role        = var.aws_auth != null
+  create_github_role = var.github_auth != null
+  create_kv          = var.create_kv
 }
 
 # Lookup the AWS auth backend
@@ -63,4 +64,30 @@ EOT
       error_message = "kv_mount_path must be specified when create_kv is true."
     }
   }
+}
+
+# Create the GitHub Actions JWT auth backend role
+resource "vault_jwt_auth_backend_role" "github" {
+  count = local.create_github_role ? 1 : 0
+
+  namespace = var.github_auth.vault_namespace_path
+  backend   = var.github_auth.backend
+
+  role_name         = "applz-${var.app_name}-gha"
+  bound_audiences   = coalesce(var.github_auth.bound_audiences, ["https://github.com/${var.github_auth.github_organization}"])
+  bound_claims_type = "glob"
+  bound_claims = {
+    sub                = join(",", [for repo in var.github_auth.github_repositories : "repo:${var.github_auth.github_organization}/${repo}:ref:*"])
+    workflow           = var.github_auth.workflow
+    runner_environment = "self-hosted"
+  }
+  user_claim = "repository"
+  role_type  = "jwt"
+  token_ttl  = var.github_auth.token_ttl
+  token_type = "service"
+
+  token_policies = concat(
+    var.github_auth.token_policies,
+    var.create_kv ? [vault_policy.kv[0].name] : []
+  )
 }
