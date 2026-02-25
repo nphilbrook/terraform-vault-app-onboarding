@@ -1,7 +1,7 @@
 locals {
   create_role        = var.aws_auth != null
   create_github_role = var.github_auth != null
-  create_kv          = var.create_kv
+  create_kv          = var.create_kv_policy
 }
 
 # Lookup the AWS auth backend
@@ -37,41 +37,22 @@ resource "vault_aws_auth_backend_role" "this" {
   # Combine both the user-provided policies and the KV policy (if created)
   token_policies = concat(
     var.aws_auth.token_policies,
-    var.create_kv ? [vault_policy.kv[0].name] : []
+    var.create_kv_policy ? [vault_policy.kv[0].name] : []
   )
 }
 
-# Create a policy granting access to the KV path if create_kv is true
-resource "vault_policy" "kv" {
-  count = local.create_kv ? 1 : 0
-
-  name = "applz-kv-${var.app_name}"
-
-  policy = <<EOT
-# Allow access to the KV path
-path "${var.kv_mount_path}/data/${var.app_name}/*" {
-  capabilities = ["create", "read", "update", "delete", "list"]
-}
-
-path "${var.kv_mount_path}/metadata/${var.app_name}/*" {
-  capabilities = ["read", "list", "delete"]
-}
-EOT
-
-  lifecycle {
-    precondition {
-      condition     = var.kv_mount_path != ""
-      error_message = "kv_mount_path must be specified when create_kv is true."
-    }
-  }
+# Lookup the jwt-github auth backend
+data "vault_auth_backend" "github" {
+  count = local.create_github_role ? 1 : 0
+  path  = var.github_auth.backend
 }
 
 # Create the GitHub Actions JWT auth backend role
 resource "vault_jwt_auth_backend_role" "github" {
   count = local.create_github_role ? 1 : 0
 
-  namespace = var.github_auth.vault_namespace_path
-  backend   = var.github_auth.backend
+  # namespace = var.github_auth.vault_namespace_path
+  backend = var.github_auth.backend
 
   role_name         = "applz-${var.app_name}-gha"
   bound_audiences   = coalesce(var.github_auth.bound_audiences, ["https://github.com/${var.github_auth.github_organization}"])
@@ -88,6 +69,6 @@ resource "vault_jwt_auth_backend_role" "github" {
 
   token_policies = concat(
     var.github_auth.token_policies,
-    var.create_kv ? [vault_policy.kv[0].name] : []
+    var.create_kv_policy ? [vault_policy.kv[0].name] : []
   )
 }

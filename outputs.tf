@@ -10,7 +10,7 @@ output "backend_path" {
 
 output "policy_name" {
   description = "Name of the KV policy (if created)"
-  value       = var.create_kv ? vault_policy.kv[0].name : null
+  value       = var.create_kv_policy ? vault_policy.kv[0].name : null
 }
 
 output "role_id" {

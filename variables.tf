@@ -21,7 +21,7 @@ variable "aws_auth" {
   default = null
 }
 
-variable "create_kv" {
+variable "create_kv_policy" {
   description = "Whether to create a KV policy"
   type        = bool
   default     = false
@@ -30,14 +30,14 @@ variable "create_kv" {
 variable "github_auth" {
   description = "GitHub Actions JWT auth backend role configuration. Set to null to skip creating the role."
   type = object({
-    backend              = optional(string, "jwt")
-    github_organization  = string
-    github_repositories  = list(string)
-    vault_namespace_path = optional(string)
-    workflow             = optional(string)
-    bound_audiences      = optional(list(string))
-    token_ttl            = optional(number, 300)
-    token_policies       = optional(list(string), [])
+    backend             = optional(string, "jwt-github")
+    github_organization = string
+    github_repositories = list(string)
+    # vault_namespace_path = optional(string)
+    workflow        = optional(string)
+    bound_audiences = optional(list(string))
+    token_ttl       = optional(number, 300)
+    token_policies  = optional(list(string), [])
   })
   default = null
 }
