@@ -52,7 +52,7 @@ resource "vault_jwt_auth_backend_role" "github" {
   count = local.create_github_role ? 1 : 0
 
   # namespace = var.github_auth.vault_namespace_path
-  backend = var.github_auth.backend
+  backend = data.vault_auth_backend.github[0].path
 
   role_name         = "applz-${var.app_name}-gha"
   bound_audiences   = coalesce(var.github_auth.bound_audiences, ["https://github.com/${var.github_auth.github_organization}"])

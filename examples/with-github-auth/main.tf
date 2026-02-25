@@ -4,7 +4,6 @@ module "app_github_auth" {
   app_name = "my-app"
 
   github_auth = {
-    backend             = "jwt"
     github_organization = "my-org"
     github_repositories = ["my-app-repo", "my-app-infra"]
     token_ttl           = 300
@@ -12,7 +11,6 @@ module "app_github_auth" {
 
   # Enable KV policy creation
   create_kv_policy = true
-  kv_mount_path    = "secret"
 }
 
 output "github_role_name" {
